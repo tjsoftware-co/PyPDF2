@@ -2307,6 +2307,15 @@ class PageObject(DictionaryObject):
         """
         self._mergePage(page2)
 
+    def _unwrapPageObject(self, iterable_instance):
+        out = []
+        for instance in iterable_instance:
+            if isinstance(instance, (IndirectObject, ArrayObject)):
+                out.extend(self._unwrapPageObject(instance.getObject()))
+            else:
+                out.append(instance)
+        return out
+
     def _mergePage(self, page2, page2transformation=None, ctm=None, expand=False):
         # First we work on merging the resource dictionaries.  This allows us
         # to find out what symbols in the content streams we might need to
@@ -2332,11 +2341,10 @@ class PageObject(DictionaryObject):
                 rename.update(newrename)
 
         # Combine /ProcSet sets.
-        newResources[NameObject("/ProcSet")] = ArrayObject(
-            frozenset(originalResources.get("/ProcSet", ArrayObject()).getObject()).union(
-                frozenset(page2Resources.get("/ProcSet", ArrayObject()).getObject())
-            )
-        )
+        obj_a = self._unwrapPageObject(originalResources.get("/ProcSet", ArrayObject()))
+        obj_b = self._unwrapPageObject(page2Resources.get("/ProcSet", ArrayObject()))
+        union_set = frozenset(obj_a).union(frozenset(obj_b))
+        newResources[NameObject("/ProcSet")] = ArrayObject(union_set)
 
         newContentArray = ArrayObject()
 
