@@ -1,11 +1,14 @@
 import os
 import sys
 import unittest
+import zlib
 
 from PyPDF2 import PdfFileReader, PdfFileWriter
 
 
 # Configure path environment
+from PyPDF2.filters import decompress
+
 TESTS_ROOT = os.path.abspath(os.path.dirname(__file__))
 PROJECT_ROOT = os.path.dirname(TESTS_ROOT)
 RESOURCE_ROOT = os.path.join(PROJECT_ROOT, 'Resources')
@@ -67,3 +70,21 @@ class AddJsTestCase(unittest.TestCase):
         self.assertIn('/JavaScript', self.pdf_file_writer._root_object['/Names'])
         self.assertIn('/Names', self.pdf_file_writer._root_object['/Names']['/JavaScript'])
         return self.pdf_file_writer._root_object['/Names']['/JavaScript']['/Names'][0]
+
+
+class TaillessZlibDataTestCase(unittest.TestCase):
+    """
+    Tests
+    """
+    test_value = b'x\x9c\xe2\n\xe4\x02\x00\x00\x00\xff\xff'
+    test_output = b'\nQ\n'
+
+    def test_zlib_success(self):
+        self.assertEqual(self.test_output, zlib.decompressobj().decompress(self.test_value))
+
+    def test_zlib_error(self):
+        with self.assertRaises(Exception):
+            zlib.decompress(self.test_value)
+
+    def test_decompress_success(self):
+        self.assertEqual(self.test_output, decompress(self.test_value))
